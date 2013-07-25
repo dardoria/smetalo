@@ -6,11 +6,12 @@ var hitOptions = {
 };
 
 //drawing stuff
-var unitWidth = 60;
-var unitHeight = 40;
-var hGap = 50;
+var unitWidth = project.view.viewSize.width / 10;
+var unitHeight = 60;
+var hGap = 0;
 var vGap = 10;
 var cornerSize = new Size(10, 10);
+var fontSize = unitHeight + vGap;
 
 var selectedPath;
 var movePath = false;
@@ -133,7 +134,7 @@ function displaySolution() {
   solutionLayer = new Layer();
   var solutionText = new PointText(new Point(taskPath.bounds.x, taskPath.bounds.y + unitHeight));
   solutionText.content = solutionString;
-  solutionText.fontSize = 53;
+  solutionText.fontSize = fontSize;
   solutionLayer.activate();
 }
 
