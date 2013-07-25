@@ -15,6 +15,7 @@ var cornerSize = new Size(10, 10);
 var selectedPath;
 var movePath = false;
 var taskPath;
+var solutionLayer;
 
 //data
 var maxTarget;
@@ -40,7 +41,7 @@ function makeNumberBar(length, vOffset) {
 
 function generateNumberBars(selected, max) {
   var vOffset = 0;
-  var lightness = (Math.random() - 0.5) * 0.4 + 0.4;
+  var lightness = (Math.random() - 0.5) * 0.4 + 0.6;
   var hue = Math.random() * 360;
   for (var i = 1; i <= max; i++){
     vOffset = (unitHeight + vGap) * i;
@@ -55,32 +56,40 @@ function generateNumberBars(selected, max) {
   }
 }
 
-function main() {
+function start() {
+  project.activeLayer.removeChildren();
   maxTarget = 10;
   targetNumber = getRandomInt(2, maxTarget);
   generateNumberBars(targetNumber, maxTarget);
 }
 
 function onMouseDown(event) {
-  selectedPath = null;
-  var hitResult = project.hitTest(event.point, hitOptions);
-  if (!hitResult) {
-    return;
-  }
+  if (project.activeLayer == solutionLayer){
+    solutionLayer.remove();
+    start();
+  } else {
+    selectedPath = null;
+    var hitResult = project.hitTest(event.point, hitOptions);
+    if (!hitResult) {
+      return;
+    }
 
-  selectedPath = cloneItem(hitResult.item.parent);
-  console.log(selectedPath.data.value);
+    selectedPath = cloneItem(hitResult.item.parent);
+    console.log(selectedPath.data.value);
 
-  movePath = hitResult.type == 'fill' && isItemDraggable(selectedPath);
-  if (movePath) {
-    project.activeLayer.addChild(hitResult.item);
+    movePath = hitResult.type == 'fill' && isItemDraggable(selectedPath);
+    if (movePath) {
+      project.activeLayer.addChild(selectedPath);
+    }
   }
 }
 
 function onMouseMove(event) {
-  project.activeLayer.selected = false;
-  if (isItemDraggable(event.item)){
-    event.item.selected = true;
+  if (project.activeLayer != solutionLayer){
+    project.activeLayer.selected = false;
+    if (isItemDraggable(event.item)){
+      event.item.selected = true;
+    }
   }
 }
 
@@ -99,12 +108,33 @@ function onMouseUp(event) {
       var insertPos = taskPath.data.value > 0 ? taskPath.bounds.x + (unitWidth * taskPath.data.value) : taskPath.bounds.x;
       selectedPath.position = new Point(insertPos + getItemWidth(selectedPath) / 2, taskPath.position.y);
       taskPath.data.value += selectedPath.data.value;
-
-
+      taskPath.addChild(selectedPath);
+      if (taskPath.data.value == taskPath.data.targetValue){
+       displaySolution();
+      }
     } else {
       selectedPath.remove();
     }
   }
+}
+
+function displaySolution() {
+  var solutionString = "";
+
+  for (var i = taskPath.data.targetValue; i < taskPath.children.length; i++) {
+    if (i < taskPath.children.length - 1) {
+      solutionString += taskPath.children[i].data.value + " + ";
+    } else {
+      solutionString += taskPath.children[i].data.value + " = " + taskPath.data.targetValue;
+    }
+  }
+
+  project.activeLayer.selected = false;
+  solutionLayer = new Layer();
+  var solutionText = new PointText(new Point(taskPath.bounds.x, taskPath.bounds.y + unitHeight));
+  solutionText.content = solutionString;
+  solutionText.fontSize = 53;
+  solutionLayer.activate();
 }
 
 function getItemWidth(item) {
@@ -125,5 +155,5 @@ function isItemDraggable(item){
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-main();
+start();
 
