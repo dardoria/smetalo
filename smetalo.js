@@ -5,17 +5,15 @@ var hitOptions = {
   tolerance: 5
 };
 
-//paper.js stuff
-var selectedPath;
-var movePath = false;
-
 //drawing stuff
 var unitWidth = 60;
 var unitHeight = 40;
+var hGap = 50;
 var vGap = 10;
-var vGapTask = unitHeight + vGap;
 var cornerSize = new Size(10, 10);
-var path;
+
+var selectedPath;
+var movePath = false;
 var taskPath;
 
 //data
@@ -23,34 +21,37 @@ var maxTarget;
 var targetNumber;
 
 function drawTaskArea(target, vOffset){
-  var rectangle = new Rectangle(new Point(50, (unitHeight + vGap) * (target + 1)), new Size(unitWidth * target, unitHeight));
-  taskPath = new Path.RoundRectangle(rectangle, cornerSize);
+  taskPath = makeNumberBar(target, vOffset);
   taskPath.fillColor = 'lightgrey'
   taskPath.data.value = 0;
   taskPath.data.targetValue = target;
   taskPath.data.draggable = false;
 }
 
+function makeNumberBar(length, vOffset) {
+  var numberBar = new Group();
+  for (var i = 0; i < length; i++){
+    var rectangle = new Rectangle(new Point(hGap + (unitWidth * i), vOffset), new Size(unitWidth, unitHeight));
+    var path = new Path.RoundRectangle(rectangle, cornerSize);
+    numberBar.addChild(path);
+  }
+  return numberBar;
+}
+
 function generateNumberBars(selected, max) {
   var vOffset = 0;
-
+  var lightness = (Math.random() - 0.5) * 0.4 + 0.4;
+  var hue = Math.random() * 360;
   for (var i = 1; i <= max; i++){
-    var lightness = (Math.random() - 0.5) * 0.4 + 0.4;
-    var hue = Math.random() * 360;
-
-    if (i < selected){
-      vOffset = (unitHeight + vGap) * i;
-    } else if (i == selected) {
-      vOffset = (unitHeight + vGap) * i;
-      drawTaskArea(selected, vOffset);
+    vOffset = (unitHeight + vGap) * i;
+    if (i != selected){
+      var path = makeNumberBar(i, vOffset);
+      path.fillColor = { hue: hue, saturation: 1, lightness: lightness };
+      path.data.value = i;
+      path.data.draggable = true;
     } else {
-      vOffset = ((unitHeight + vGap) * i) + vGapTask;
+      drawTaskArea(selected, vOffset);
     }
-    var rectangle = new Rectangle(new Point(50, vOffset), new Size(unitWidth * i, unitHeight));
-    path = new Path.RoundRectangle(rectangle, cornerSize);
-    path.fillColor = { hue: hue, saturation: 1, lightness: lightness };
-    path.data.value = i;
-    path.data.draggable = selected != i;
   }
 }
 
@@ -67,7 +68,8 @@ function onMouseDown(event) {
     return;
   }
 
-  selectedPath = cloneItem(hitResult.item);
+  selectedPath = cloneItem(hitResult.item.parent);
+  console.log(selectedPath.data.value);
 
   movePath = hitResult.type == 'fill' && isItemDraggable(selectedPath);
   if (movePath) {
@@ -91,17 +93,24 @@ function onMouseDrag(event) {
 function onMouseUp(event) {
   if (movePath){
     movePath = false;
-    console.log(taskPath);
     var hitResult = taskPath.getBounds().intersects(selectedPath.getBounds());
     if (hitResult && ((selectedPath.data.value + taskPath.data.value) <= taskPath.data.targetValue)) {
-      taskPath.data.value += selectedPath.data.value;
       selectedPath.data.draggable = false;
+      var insertPos = taskPath.data.value > 0 ? taskPath.bounds.x + (unitWidth * taskPath.data.value) : taskPath.bounds.x;
+      selectedPath.position = new Point(insertPos + getItemWidth(selectedPath) / 2, taskPath.position.y);
+      taskPath.data.value += selectedPath.data.value;
+
+
     } else {
       selectedPath.remove();
     }
   }
 }
 
+function getItemWidth(item) {
+  return unitWidth * item.data.value;
+
+}
 function cloneItem(item) {
   var copy = item.clone();
   copy.data.value = item.data.value;
